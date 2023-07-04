@@ -1,0 +1,74 @@
+---
+title: "Untitled"
+author: "Thibeaux"
+date: "2023-07-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Libraries
+library(GGally)
+library(boot)
+library(ggplot2)
+library(tidyverse)
+library(lmboot)
+library(caret)
+library(naniar)
+library(utils)
+library(stats)
+library(car)
+```
+# Data Upload
+```{r}
+Sample2016 <- read.csv('https://github.com/athibeaux/DS7330/raw/main/cleansubsample2016.csv', header = TRUE, fill = TRUE)
+Sample2017 <- read.csv('https://github.com/athibeaux/DS7330/raw/main/cleansubsample2017.csv', header = TRUE, fill = TRUE)
+```
+# Transform Y Variable
+```{r}
+Sample2016$logtax <- log(Sample2016$taxamount)
+
+# Before transformation
+Sample2016 %>% ggplot() + geom_histogram(aes(x = taxamount))
+
+# After transformation
+Sample2016 %>% ggplot() + geom_histogram(aes(x = logtax))
+```
+# GG Pairs
+```{r}
+summary(Sample2016)
+ForGG <- select(Sample2016, 3, 4, 7, 12, 14, 18:20, 26)
+ggpairs(ForGG)
+```
+# Modeling
+```{r}
+# Full Model
+full.model <- lm(logtax~ ., data = ForGG)
+summary(full.model)
+plot(full.model)
+vif(full.model)
+
+# Remove Non-Significant Variable
+sig.model <- lm(logtax~ bathroomcnt + bedroomcnt + finishedsquarefeet12 + lotsizesquarefeet + propertylandusetypeid + regionidzip + yearbuilt, data = ForGG)
+summary(sig.model)
+plot(sig.model)
+vif(sig.model)
+
+# Log appropriate variables
+log.model <- lm(logtax~ log(bathroomcnt) + bedroomcnt + log(finishedsquarefeet12) + log(lotsizesquarefeet) + log(propertylandusetypeid) + log(regionidzip) + log(yearbuilt), data = ForGG)
+summary(log.model)
+plot(log.model)
+vif(log.model)
+```
+# Closer Look
+```{r}
+# Finished Sq. Feet Variable
+Sample2016 %>% ggplot(aes(x = finishedsquarefeet12, y = logtax)) + geom_point() + geom_smooth()
+
+# Lot size sq. feet
+Sample2016 %>% ggplot(aes(x = log(lotsizesquarefeet), y = logtax)) + geom_point() + geom_smooth()
+
+# Year built variable
+Sample2016 %>% ggplot(aes(x = yearbuilt, y = logtax)) + geom_point() + geom_smooth()
+```
